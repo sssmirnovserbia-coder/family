@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Семья</title>
+  <meta name="theme-color" content="#2f6fed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Семья">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest" id="manifestLink">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1b2333;
+      --muted: #6b7486;
+      --accent: #2f6fed;
+      --accent-2: #19a463;
+      --border: #dde2ec;
+      --ok: #19a463;
+      --err: #d64545;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #11151d;
+        --card: #1b212d;
+        --text: #eef1f7;
+        --muted: #9aa3b5;
+        --accent: #5b8ef5;
+        --accent-2: #2fbf7a;
+        --border: #2c3445;
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 18px;
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    }
+    main {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+    }
+    h1 { font-size: 26px; margin: 8px 0 4px; }
+    p.sub { color: var(--muted); margin: 0 0 24px; line-height: 1.4; }
+    .hidden { display: none !important; }
+    .center { text-align: center; }
+    .big-emoji { font-size: 56px; text-align: center; margin-top: 24px; }
+
+    /* Вход по приглашению */
+    .join { display: flex; gap: 8px; }
+    .join input {
+      flex: 1;
+      font-size: 22px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 14px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      min-width: 0;
+    }
+    .join button {
+      font-size: 18px;
+      padding: 0 18px;
+      border-radius: 12px;
+      border: 0;
+      background: var(--accent);
+      color: #fff;
+    }
+    .code {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 32px;
+      letter-spacing: 3px;
+      text-align: center;
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    ol.steps { padding-left: 22px; line-height: 1.5; }
+    ol.steps li { margin-bottom: 10px; }
+
+    /* Главный экран */
+    .hello { text-align: center; margin-bottom: 28px; }
+    .hello .emoji { font-size: 56px; }
+    .actions { display: flex; flex-direction: column; gap: 18px; flex: 1; justify-content: center; }
+    .big {
+      border: 0;
+      border-radius: 24px;
+      padding: 30px 16px;
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.12);
+      min-height: 120px;
+    }
+    .big .emoji { font-size: 40px; }
+    .big.chat { background: var(--accent); }
+    .big.call { background: var(--accent-2); }
+    .big:active { transform: scale(0.98); }
+    .big:disabled { opacity: .6; }
+
+    .status {
+      min-height: 56px;
+      margin-top: 22px;
+      text-align: center;
+      font-size: 18px;
+      padding: 14px;
+      border-radius: 14px;
+    }
+    .status:empty { padding: 0; }
+    .status.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+    .status.err { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
+    .status.wait { color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <!-- Нет доступа: вход по коду приглашения -->
+  <section id="join" class="hidden">
+    <div class="big-emoji">🎟</div>
+    <h1 class="center">Вход по приглашению</h1>
+    <p class="sub center" id="joinText">Попросите у родственника ссылку‑приглашение или введите код из неё.</p>
+    <form class="join" id="joinForm">
+      <input id="codeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" placeholder="XXXX-XXXX" maxlength="9" aria-label="Код приглашения">
+      <button type="submit">Войти</button>
+    </form>
+    <div class="status" id="joinStatus"></div>
+  </section>
+
+  <!-- iPhone: сначала добавить на экран «Домой», потом войти -->
+  <section id="install" class="hidden">
+    <div class="big-emoji">📲</div>
+    <h1 class="center">Сначала установите приложение</h1>
+    <ol class="steps">
+      <li>Нажмите внизу кнопку <b>«Поделиться»</b> (квадрат со стрелкой вверх).</li>
+      <li>Выберите <b>«На экран „Домой“»</b> и нажмите <b>«Добавить»</b>.</li>
+      <li>Откройте приложение <b>«Семья»</b> с главного экрана.</li>
+    </ol>
+    <p class="sub">Если приложение попросит код, введите этот:</p>
+    <div class="code" id="installCode"></div>
+  </section>
+
+  <!-- Главный экран -->
+  <section id="home" class="hidden" style="display:flex;flex-direction:column;flex:1">
+    <div class="hello">
+      <div class="emoji" id="helloEmoji">👋</div>
+      <h1 id="helloText">Привет!</h1>
+    </div>
+    <div class="actions">
+      <button class="big chat" data-kind="chat"><span class="emoji">💬</span>Пусть проверит чат</button>
+      <button class="big call" data-kind="call"><span class="emoji">📞</span>Пора созвониться</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "family_device"; // { key, name, emoji } — выдаётся прокси по приглашению
+  var COOLDOWN_MS = 10000;   // защита от двойных нажатий
+
+  var cfg = window.APP_CONFIG || {};
+  var $ = function (id) { return document.getElementById(id); };
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; }
+  }
+  function save(v) {
+    try {
+      if (v) localStorage.setItem(KEY, JSON.stringify(v)); else localStorage.removeItem(KEY);
+      localStorage.removeItem("family_role"); // старая версия без приглашений
+    } catch (e) {}
+  }
+
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isStandalone = navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+
+  function show(id) {
+    ["join", "install", "home"].forEach(function (s) { $(s).classList.toggle("hidden", s !== id); });
+  }
+
+  function setStatus(el, text, kind) {
+    el.textContent = text;
+    el.className = "status" + (kind ? " " + kind : "");
+  }
+
+  function formatCode(c) {
+    c = String(c || "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+    return c.length > 4 ? c.slice(0, 4) + "-" + c.slice(4, 8) : c;
+  }
+
+  function post(path, fields) {
+    var url = String(cfg.API_BASE || "").replace(/\/$/, "") + path;
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 15000);
+    // Form-encoded body = «простой» запрос без CORS-preflight.
+    return fetch(url, { method: "POST", body: new URLSearchParams(fields), signal: ctrl.signal })
+      .then(function (r) {
+        clearTimeout(timer);
+        return r.json().catch(function () { return { ok: false, description: "bad response" }; });
+      });
+  }
+
+  function clearInviteFromUrl() {
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+
+  function showHome(device) {
+    $("helloEmoji").textContent = device.emoji;
+    $("helloText").textContent = "Привет, " + device.name + "!";
+    setStatus($("status"), "", "");
+    show("home");
+  }
+
+  function showJoin(text, code) {
+    $("joinText").textContent = text || "Попросите у родственника ссылку‑приглашение или введите код из неё.";
+    $("codeInput").value = code ? formatCode(code) : "";
+    setStatus($("joinStatus"), "", "");
+    show("join");
+  }
+
+  function redeem(code) {
+    var st = $("joinStatus");
+    setStatus(st, "Проверяю приглашение…", "wait");
+    return post("/redeem", { code: code }).then(function (data) {
+      if (!data.ok) {
+        setStatus(st, "❌ Приглашение не подходит: оно уже использовано, устарело или код набран с ошибкой.", "err");
+        return;
+      }
+      save({ key: data.key, name: data.name, emoji: data.emoji });
+      clearInviteFromUrl();
+      showHome(load());
+    }).catch(function () {
+      setStatus(st, "❌ Нет связи. Проверьте интернет и попробуйте ещё раз.", "err");
+    });
+  }
+
+  function onAction(kind) {
+    var device = load();
+    if (!device) return showJoin();
+    var buttons = document.querySelectorAll(".big");
+    var st = $("status");
+    buttons.forEach(function (b) { b.disabled = true; });
+    setStatus(st, "Отправляю…", "wait");
+
+    post("/send", { key: device.key, kind: kind }).then(function (data) {
+      if (data.ok) {
+        setStatus(st, kind === "chat" ? "✅ Отправлено! Скоро проверит чат." : "✅ Отправлено! Скоро позвонит.", "ok");
+        if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
+        setTimeout(function () { buttons.forEach(function (b) { b.disabled = false; }); }, COOLDOWN_MS);
+        return;
+      }
+      buttons.forEach(function (b) { b.disabled = false; });
+      if (data.description === "unknown device") {
+        save(null);
+        showJoin("Доступ этого телефона отключён. Попросите новое приглашение.");
+      } else if (data.description === "too often") {
+        setStatus(st, "⏳ Сообщение только что ушло. Подождите несколько секунд.", "err");
+      } else {
+        setStatus(st, "❌ Не получилось отправить. Попробуйте ещё раз.", "err");
+      }
+    }).catch(function () {
+      buttons.forEach(function (b) { b.disabled = false; });
+      setStatus(st, "❌ Нет связи. Проверьте интернет и попробуйте ещё раз.", "err");
+    });
+  }
+
+  // ---- обработчики ----
+  $("joinForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var code = $("codeInput").value.toUpperCase().replace(/[^0-9A-Z]/g, "");
+    if (code.length !== 8) return setStatus($("joinStatus"), "Код состоит из 8 символов, например K7M4-QX2P.", "err");
+    redeem(code);
+  });
+  $("codeInput").addEventListener("input", function (e) {
+    var el = e.target, v = formatCode(el.value);
+    if (v !== el.value) el.value = v;
+  });
+  document.querySelectorAll(".big").forEach(function (b) {
+    b.addEventListener("click", function () { onAction(b.dataset.kind); });
+  });
+
+  // ---- запуск ----
+  var device = load();
+  var invite = new URLSearchParams(location.search).get("invite");
+
+  if (device) {
+    clearInviteFromUrl();
+    showHome(device);
+  } else if (invite && isIOS && !isStandalone) {
+    // На iPhone приложение с экрана «Домой» не видит данных Safari, поэтому приглашение
+    // активируем уже в установленном приложении. Убираем manifest, чтобы iOS сохранил
+    // на экран «Домой» текущий адрес вместе с кодом приглашения.
+    var link = $("manifestLink");
+    if (link) link.parentNode.removeChild(link);
+    $("installCode").textContent = formatCode(invite);
+    show("install");
+  } else if (invite) {
+    showJoin("", invite);
+    redeem(String(invite).toUpperCase().replace(/[^0-9A-Z]/g, ""));
+  } else {
+    showJoin();
+  }
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
